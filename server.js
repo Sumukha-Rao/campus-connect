@@ -10,11 +10,9 @@ const pool = require('./db');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
-const departmentRoutes = require('./routes/departments');
+const channelRoutes = require('./routes/channels');
 const postRoutes = require('./routes/posts');
 const subscriptionRoutes = require('./routes/subscriptions');
-const adminRoutes = require('./routes/admin');
-const clubRoutes = require('./routes/clubs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,11 +31,9 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/departments', departmentRoutes);
+app.use('/api/channels', channelRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/clubs', clubRoutes);
 
 // SPA fallback - send the main page for any non-API path
 app.get('*', (req, res, next) => {
@@ -80,8 +76,8 @@ async function bootstrap() {
     const fullName = process.env.DEFAULT_ADMIN_NAME || 'Administrator';
     const hash = await bcrypt.hash(password, 10);
     await pool.query(
-      `INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, 'admin')`,
-      [username, hash, fullName]
+      `INSERT INTO users (username, password_hash, full_name, email, role) VALUES (?, ?, ?, ?, 'admin')`,
+      [username, hash, fullName, 'admin@rvce.edu.in']
     );
     console.log(`✔ Default admin created -> username: ${username} / password: ${password}`);
     console.log('  (change this immediately after first login!)');
