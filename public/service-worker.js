@@ -1,7 +1,7 @@
 // service-worker.js - Campus Connect PWA cache
-const STATIC_CACHE = 'cc-static-v1';
-const RUNTIME_CACHE = 'cc-runtime-v1';
-const POSTS_CACHE = 'cc-posts-v1';
+const STATIC_CACHE = 'cc-static-v5';
+const RUNTIME_CACHE = 'cc-runtime-v5';
+const POSTS_CACHE = 'cc-posts-v4';
 
 const STATIC_ASSETS = [
   '/',

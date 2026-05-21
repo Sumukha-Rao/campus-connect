@@ -200,17 +200,17 @@ INSERT INTO departments (id, name, code) VALUES
 -- ============================================================================
 INSERT INTO users (id, username, password_hash, full_name, role, department_id, phone_number, email) VALUES
 -- HODs (Publishers)
-(1, 'hod_cse', 'hashed_pw_1', 'Dr. Shobha G', 'publisher', 1, '9876500001', 'hod.cse@rvce.edu.in'),
-(2, 'hod_me', 'hashed_pw_2', 'Dr. Krishna M', 'publisher', 3, '9876500002', 'hod.me@rvce.edu.in'),
+(1, 'hod_cse', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Dr. Shobha G', 'publisher', 1, '9876500001', 'hod.cse@rvce.edu.in'),
+(2, 'hod_me', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Dr. Krishna M', 'publisher', 3, '9876500002', 'hod.me@rvce.edu.in'),
 
 -- Club Heads (Publishers)
-(3, 'kavya_debsoc', 'hashed_pw_3', 'Kavya Rao', 'publisher', 2, '9876500003', 'kavyar.is22@rvce.edu.in'),
-(4, 'pranav_envisage', 'hashed_pw_4', 'Pranav K', 'publisher', 4, '9876500004', 'pranavk.ec21@rvce.edu.in'),
+(3, 'kavya_debsoc', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Kavya Rao', 'publisher', 2, '9876500003', 'kavyar.is22@rvce.edu.in'),
+(4, 'pranav_envisage', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Pranav K', 'publisher', 4, '9876500004', 'pranavk.ec21@rvce.edu.in'),
 
 -- Students (Viewers)
-(5, 'bharath_student', 'hashed_pw_5', 'Bharath Gowda', 'viewer', 1, '9876500005', 'bharathg.cs23@rvce.edu.in'),
-(6, 'shruti_student', 'hashed_pw_6', 'Shruti Iyer', 'viewer', 4, '9876500006', 'shrutii.ec23@rvce.edu.in'),
-(7, 'amith_student', 'hashed_pw_7', 'Amith N', 'viewer', 3, '9876500007', 'amithn.me22@rvce.edu.in');
+(5, 'bharath_student', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Bharath Gowda', 'viewer', 1, '9876500005', 'bharathg.cs23@rvce.edu.in'),
+(6, 'shruti_student', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Shruti Iyer', 'viewer', 4, '9876500006', 'shrutii.ec23@rvce.edu.in'),
+(7, 'amith_student', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Amith N', 'viewer', 3, '9876500007', 'amithn.me22@rvce.edu.in');
 
 -- ============================================================================
 -- 3. Clubs Data
@@ -218,7 +218,7 @@ INSERT INTO users (id, username, password_hash, full_name, role, department_id, 
 -- ============================================================================
 INSERT INTO clubs (id, name, code, description, logo_url, club_head_id, department_id, is_restricted) VALUES
 (1, 'RV Debating Society', 'DEBSOC', 'Official debating and literary society of RVCE', '/uploads/debsoc_logo.png', 3, NULL, FALSE),
-(2, 'Envisage', 'ENVISAGE', 'AR/VR and Game Development Club', '/uploads/envisage_logo.png', 4, 1, FALSE);
+(2, 'Envisage', 'ENVISAGE', 'AR/VR and Game Development Club', '/uploads/envisage_logo.png', 4, 1, TRUE);
 
 -- ============================================================================
 -- 4. Channels Data

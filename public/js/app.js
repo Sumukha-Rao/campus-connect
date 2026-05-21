@@ -11,6 +11,7 @@
   const panes = document.querySelectorAll('[data-pane]');
   const tabCompose = document.getElementById('tabCompose');
   const tabAdmin = document.getElementById('tabAdmin');
+  const tabModeration = document.getElementById('tabModeration');
   const offlineBadge = document.getElementById('offlineBadge');
   const globalSearch = document.getElementById('globalSearch');
 
@@ -30,6 +31,7 @@
   // --- Initialization ---
   whoAmI.textContent = user.full_name;
   if (user.role === 'publisher' || user.role === 'admin') tabCompose.classList.remove('d-none');
+  if (user.role === 'publisher' || user.role === 'admin') tabModeration.classList.remove('d-none');
   if (user.role === 'admin') tabAdmin.classList.remove('d-none');
 
   // Init Data
@@ -51,7 +53,8 @@
       
       if (target === 'feed') loadFeed();
       if (target === 'admin') loadAdminDashboard();
-      if (target === 'subs') loadPublishers();
+      if (target === 'moderation') loadModeration();
+      if (target === 'subs') loadCommunities();
       if (target === 'compose') prepareCompose();
     });
   });
@@ -268,27 +271,50 @@
     }
   };
 
-  // --- Subscriptions / Communities ---
-  async function loadPublishers() {
+  // --- Communities ---
+  const communitiesList = document.getElementById('communitiesList');
+
+  async function loadCommunities() {
     try {
-      const data = await API.get('/api/users');
-      const pubs = data.users.filter(u => u.role === 'publisher' || u.role === 'admin');
-      publisherList.innerHTML = pubs.map(p => `
+      const data = await API.get('/api/channels');
+      communitiesList.innerHTML = data.channels.map(c => {
+        let btnHtml = '';
+        if (c.my_status === 'approved') {
+          btnHtml = `<button class="btn btn-sm btn-success rounded-pill ms-auto" disabled><i class="bi bi-check-circle me-1"></i>Joined</button>`;
+        } else if (c.my_status === 'pending') {
+          btnHtml = `<button class="btn btn-sm btn-secondary rounded-pill ms-auto" disabled><i class="bi bi-clock me-1"></i>Requested</button>`;
+        } else {
+          btnHtml = `<button class="btn btn-sm btn-outline-primary rounded-pill ms-auto" onclick="window.requestJoin(${c.id})">Join</button>`;
+        }
+
+        const subtitle = c.type === 'department' ? 'Department' : (c.is_restricted ? 'Restricted Club' : 'Public Club');
+        const icon = c.logo_url ? `<img src="${c.logo_url}" alt="logo" class="w-100 h-100 rounded-circle object-fit-cover">` : `<i class="bi bi-people-fill"></i>`;
+
+        return `
         <div class="col">
           <div class="card shadow-sm border-0 h-100 rounded-4 p-3 d-flex flex-row align-items-center gap-3">
-             <div class="publisher-avatar bg-primary text-white fs-5 d-flex align-items-center justify-content-center rounded-circle" style="width:48px; height:48px;">
-               ${initials(p.full_name)}
+             <div class="bg-primary text-white fs-5 d-flex align-items-center justify-content-center rounded-circle overflow-hidden" style="width:48px; height:48px; flex-shrink: 0;">
+               ${icon}
              </div>
              <div>
-               <h6 class="mb-0 fw-bold">${escapeHtml(p.full_name)}</h6>
-               <small class="text-muted">${escapeHtml(p.department_name || 'Campus Admin')}</small>
+               <h6 class="mb-0 fw-bold">${escapeHtml(c.name)}</h6>
+               <small class="text-muted">${subtitle}</small>
              </div>
-             <button class="btn btn-sm btn-outline-primary rounded-pill ms-auto">Follow</button>
+             ${btnHtml}
           </div>
         </div>
-      `).join('');
+      `}).join('');
     } catch (e) { console.error(e); }
   }
+
+  window.requestJoin = async function(channelId) {
+    try {
+      await API.post(`/api/channels/${channelId}/subscribe`);
+      loadCommunities(); // reload UI
+    } catch (err) {
+      alert(err.message || 'Error subscribing');
+    }
+  };
 
   // --- Admin Dashboard ---
   async function loadAdminDashboard() {
@@ -302,8 +328,47 @@
         <div class="col-12 col-md-8 col-lg-4"><div class="stat-card bg-primary text-white"><div class="stat-value text-white">${stats.mostActiveClub}</div><div class="stat-label text-white-50">Most Active Community</div></div></div>
       `;
       loadUsersDirectory();
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to load Admin Dashboard:', e);
+    }
   }
+
+  // --- Moderation Dashboard (Publishers) ---
+  async function loadModeration() {
+    const pendingTbody = document.getElementById('pendingRequestsTbody');
+    try {
+      const { pending } = await API.get('/api/channels/pending');
+      if (pending && pending.length > 0) {
+        pendingTbody.innerHTML = pending.map(r => `
+          <tr>
+            <td>
+              <div class="fw-bold">${escapeHtml(r.student_name)}</div>
+              <div class="small text-muted">@${escapeHtml(r.student_username)}</div>
+            </td>
+            <td>${escapeHtml(r.student_department || 'Generic')}</td>
+            <td><span class="badge bg-indigo text-white">${escapeHtml(r.channel_name)}</span></td>
+            <td class="text-muted small">${new Date(r.created_at).toLocaleDateString()}</td>
+            <td>
+              <button class="btn btn-sm btn-success rounded-pill px-3" onclick="window.approveRequest(${r.channel_id}, ${r.subscriber_id})">Approve</button>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        pendingTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No pending requests right now!</td></tr>';
+      }
+    } catch (err) {
+      console.error('Failed to load moderation requests:', err);
+    }
+  }
+
+  window.approveRequest = async function(channelId, subscriberId) {
+    try {
+      await API.post(`/api/channels/${channelId}/approve/${subscriberId}`);
+      loadModeration();
+    } catch (err) {
+      alert(err.message || 'Error approving request');
+    }
+  };
 
   async function loadUsersDirectory() {
     const { users } = await API.get('/api/users');
