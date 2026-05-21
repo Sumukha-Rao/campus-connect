@@ -38,9 +38,9 @@ router.get('/', authRequired, async (req, res) => {
     if (date) { whereClause += " AND DATE(p.created_at) = ?"; params.push(date); }
 
     const sql = `
-      SELECT p.id, p.title, p.body, p.level, p.type, p.image_url, p.is_pinned, p.created_at,
+      SELECT p.id, p.title, p.body AS content, p.level AS target_type, p.type AS post_type, p.image_url, p.is_pinned, p.created_at,
              u.full_name AS publisher_name,
-             c.name AS channel_name, c.type AS channel_type,
+             c.name AS publisher_department, c.type AS channel_type,
              (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count,
              (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id AND l.user_id = ?) AS liked_by_me,
              (SELECT COUNT(*) FROM bookmarks b WHERE b.post_id = p.id AND b.user_id = ?) AS bookmarked_by_me
@@ -150,13 +150,15 @@ router.get('/stories', authRequired, async (req, res) => {
 router.post('/:id/like', authRequired, async (req, res) => {
   try {
     const [existing] = await pool.query('SELECT id FROM likes WHERE user_id = ? AND post_id = ?', [req.user.id, req.params.id]);
+    let liked = false;
     if (existing.length) {
       await pool.query('DELETE FROM likes WHERE id = ?', [existing[0].id]);
-      res.json({ liked: false });
     } else {
       await pool.query('INSERT INTO likes (user_id, post_id) VALUES (?, ?)', [req.user.id, req.params.id]);
-      res.json({ liked: true });
+      liked = true;
     }
+    const [countResult] = await pool.query('SELECT COUNT(*) AS count FROM likes WHERE post_id = ?', [req.params.id]);
+    res.json({ liked, like_count: countResult[0].count });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

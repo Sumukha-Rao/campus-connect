@@ -130,7 +130,21 @@
   function postCardHtml(p) {
     const avatar = initials(p.publisher_name);
     const time = timeAgo(p.created_at);
-    const media = p.image_url ? `<img src="${p.image_url}" class="post-image" alt="Post attachment">` : '';
+    
+    // Dynamic Fallback Images based on Post Type
+    let mediaUrl = p.image_url;
+    if (!mediaUrl) {
+      const fallbacks = {
+        'hackathon': 'https://placehold.co/800x400/ef4444/ffffff?text=Hackathon',
+        'event': 'https://placehold.co/800x400/10b981/ffffff?text=Campus+Event',
+        'workshop': 'https://placehold.co/800x400/f59e0b/ffffff?text=Workshop',
+        'circular': 'https://placehold.co/800x400/1e293b/ffffff?text=Official+Notice',
+        'meeting': 'https://placehold.co/800x400/3b82f6/ffffff?text=Meeting',
+        'placement talk': 'https://placehold.co/800x400/8b5cf6/ffffff?text=Placement+Talk'
+      };
+      mediaUrl = fallbacks[p.post_type] || 'https://placehold.co/800x400/6366f1/ffffff?text=Announcement';
+    }
+    const media = `<img src="${mediaUrl}" class="post-image shadow-sm" style="object-fit: cover;" alt="Post attachment">`;
     
     // Type Badge Colors
     const typeColors = {
