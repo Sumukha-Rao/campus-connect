@@ -84,7 +84,6 @@
         full_name: document.getElementById('reg_full_name').value.trim(),
         username: document.getElementById('reg_username').value.trim(),
         email: document.getElementById('reg_email').value.trim(),
-        phone_number: document.getElementById('reg_phone')?.value.trim() || '',
         role: document.getElementById('reg_role').value,
         department_id: deptSelect.value,
         password: document.getElementById('reg_password').value

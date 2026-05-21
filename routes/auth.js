@@ -10,7 +10,7 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, full_name, email, phone_number, department_id, role } = req.body || {};
+    const { username, password, full_name, email, department_id, role } = req.body || {};
     
     if (!username || !password || !full_name || !email) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -37,9 +37,9 @@ router.post('/register', async (req, res) => {
     const deptId = department_id ? parseInt(department_id) : null;
 
     const [result] = await pool.query(
-      `INSERT INTO users (username, password_hash, full_name, role, department_id, phone_number, email, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [username, hash, full_name, finalRole, deptId, phone_number || null, email, isActive]
+      `INSERT INTO users (username, password_hash, full_name, role, department_id, email, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [username, hash, full_name, finalRole, deptId, email, isActive]
     );
 
     if (!isActive) {
