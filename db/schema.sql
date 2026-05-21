@@ -8,6 +8,9 @@ USE campus_connect;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS stories;
+DROP TABLE IF EXISTS bookmarks;
+DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS chat_messages;
 DROP TABLE IF EXISTS chat_group_members;
 DROP TABLE IF EXISTS chat_groups;
@@ -98,7 +101,7 @@ CREATE TABLE IF NOT EXISTS posts (
   body TEXT NOT NULL,
   level ENUM('college_wide', 'department', 'club', 'student_body') NOT NULL,
   type ENUM('meeting', 'event', 'hackathon', 'conference', 'seminar', 'workshop', 'circular') NOT NULL,
-  attachment_url VARCHAR(255) NULL,
+  image_url VARCHAR(255) NULL,
   is_pinned BOOLEAN DEFAULT FALSE,
   scheduled_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   expires_at TIMESTAMP NULL,
@@ -143,5 +146,38 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (group_id) REFERENCES chat_groups(id) ON DELETE CASCADE,
   FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 10. Likes Table
+CREATE TABLE IF NOT EXISTS likes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  post_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_like (user_id, post_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 11. Bookmarks Table
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  post_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_bookmark (user_id, post_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 12. Stories Table
+CREATE TABLE IF NOT EXISTS stories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  publisher_id INT NOT NULL,
+  media_url VARCHAR(255) NOT NULL,
+  caption VARCHAR(200) NULL,
+  expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL 24 HOUR),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

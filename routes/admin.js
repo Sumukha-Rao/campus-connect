@@ -13,11 +13,13 @@ router.get('/stats', authRequired, requireRole('admin'), async (req, res) => {
     const [postCount] = await pool.query('SELECT COUNT(*) as count FROM posts');
     const [activeUsers] = await pool.query("SELECT COUNT(DISTINCT user_id) as count FROM likes WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)");
     
+    // Adapted from post_clubs to our unified channel_id structure
     const [mostActiveClub] = await pool.query(`
-      SELECT c.name, COUNT(pc.post_id) as post_count 
-      FROM clubs c 
-      JOIN post_clubs pc ON c.id = pc.club_id 
-      GROUP BY c.id 
+      SELECT cl.name, COUNT(p.id) as post_count 
+      FROM clubs cl
+      JOIN channels c ON cl.id = c.club_id
+      JOIN posts p ON p.channel_id = c.id
+      GROUP BY cl.id 
       ORDER BY post_count DESC LIMIT 1
     `);
 
@@ -27,7 +29,7 @@ router.get('/stats', authRequired, requireRole('admin'), async (req, res) => {
       totalClubs: clubCount[0].count,
       totalPosts: postCount[0].count,
       activeUsers: activeUsers[0].count,
-      mostActiveClub: mostActiveClub[0] ? mostActiveClub[0].name : 'N/A'
+      mostActiveClub: mostActiveClub.length ? mostActiveClub[0].name : 'N/A'
     });
   } catch (err) {
     console.error(err);
@@ -39,7 +41,9 @@ router.get('/stats', authRequired, requireRole('admin'), async (req, res) => {
 router.post('/users/:id/ban', authRequired, requireRole('admin'), async (req, res) => {
   try {
     const { banned } = req.body;
-    await pool.query('UPDATE users SET is_banned = ? WHERE id = ?', [banned, req.params.id]);
+    // Safely map the UI's 'banned' concept to our 'is_active' column
+    const isActive = banned ? 0 : 1;
+    await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [isActive, req.params.id]);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
