@@ -1,5 +1,4 @@
 -- Campus Connect Database Schema
--- Run this once to create the database (the app will also auto-create tables on first start)
 
 CREATE DATABASE IF NOT EXISTS campus_connect
   CHARACTER SET utf8mb4
@@ -7,74 +6,241 @@ CREATE DATABASE IF NOT EXISTS campus_connect
 
 USE campus_connect;
 
--- Departments
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS chat_messages;
+DROP TABLE IF EXISTS chat_group_members;
+DROP TABLE IF EXISTS chat_groups;
+DROP TABLE IF EXISTS post_analytics;
+DROP TABLE IF EXISTS bookmarks;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS notification_preferences;
+DROP TABLE IF EXISTS push_subscriptions;
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS channels;
+DROP TABLE IF EXISTS clubs;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS departments;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 1. Departments Table
 CREATE TABLE IF NOT EXISTS departments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) UNIQUE NOT NULL,
+  code VARCHAR(10) UNIQUE NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- Users (viewer / publisher / admin)
+-- 2. Users Table
+-- Supports 3 Roles: 'admin', 'publisher', 'viewer'
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(100) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(150) NOT NULL,
-  role ENUM('viewer','publisher','admin') NOT NULL,
+  role ENUM('admin', 'publisher', 'viewer') NOT NULL,
   department_id INT NULL,
+  phone_number VARCHAR(15) NULL,
+  email VARCHAR(150) UNIQUE NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- Posts
-CREATE TABLE IF NOT EXISTS posts (
+-- 3. Clubs Table
+CREATE TABLE IF NOT EXISTS clubs (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  publisher_id INT NOT NULL,
-  title VARCHAR(200) NOT NULL,
-  content TEXT NOT NULL,
-  target_type ENUM('all','department') NOT NULL DEFAULT 'all',
+  name VARCHAR(100) UNIQUE NOT NULL,
+  code VARCHAR(15) UNIQUE NOT NULL,
+  description TEXT NULL,
+  logo_url VARCHAR(255) NULL,
+  club_head_id INT NOT NULL,
+  department_id INT NULL,
+  is_restricted BOOLEAN DEFAULT FALSE,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (club_head_id) REFERENCES users(id) ON DELETE RESTRICT,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- Posts that target specific departments (only used when target_type = 'department')
-CREATE TABLE IF NOT EXISTS post_departments (
-  post_id INT NOT NULL,
-  department_id INT NOT NULL,
-  PRIMARY KEY (post_id, department_id),
-  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+-- 4. Channels Table (Unified subscription target)
+CREATE TABLE IF NOT EXISTS channels (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  type ENUM('department', 'club') NOT NULL,
+  department_id INT NULL UNIQUE,
+  club_id INT NULL UNIQUE,
+  name VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
+  FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE,
+  CONSTRAINT chk_channel_type CHECK (
+    (type = 'department' AND department_id IS NOT NULL AND club_id IS NULL) OR
+    (type = 'club' AND club_id IS NOT NULL AND department_id IS NULL)
+  )
 ) ENGINE=InnoDB;
 
--- Subscriptions: any user (viewer or publisher) can follow a publisher
+-- 5. Subscriptions Table
 CREATE TABLE IF NOT EXISTS subscriptions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   subscriber_id INT NOT NULL,
-  publisher_id INT NOT NULL,
+  channel_id INT NOT NULL,
+  status ENUM('pending', 'approved') NOT NULL DEFAULT 'approved',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_sub (subscriber_id, publisher_id),
+  UNIQUE KEY uniq_sub (subscriber_id, channel_id),
   FOREIGN KEY (subscriber_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Likes
-CREATE TABLE IF NOT EXISTS likes (
+-- 6. Posts Table
+CREATE TABLE IF NOT EXISTS posts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  publisher_id INT NOT NULL,
+  channel_id INT NULL, -- NULL means a college-wide broadcast by admin
+  title VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  level ENUM('college_wide', 'department', 'club', 'student_body') NOT NULL,
+  type ENUM('meeting', 'event', 'hackathon', 'conference', 'seminar', 'workshop', 'circular') NOT NULL,
+  attachment_url VARCHAR(255) NULL,
+  is_pinned BOOLEAN DEFAULT FALSE,
+  scheduled_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NULL,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
+  INDEX idx_publish_time (is_published, scheduled_at, expires_at),
+  FULLTEXT INDEX idx_search (title, body)
+) ENGINE=InnoDB;
+
+-- 7. WebPush Subscriptions Table
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  endpoint TEXT NOT NULL,
+  p256dh VARCHAR(255) NOT NULL,
+  auth VARCHAR(255) NOT NULL,
+  user_agent VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_endpoint (user_id, endpoint(255)),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 8. User Preferences
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNIQUE NOT NULL,
+  mute_meetings BOOLEAN DEFAULT FALSE,
+  mute_circulars BOOLEAN DEFAULT FALSE,
+  mute_hackathons BOOLEAN DEFAULT FALSE,
+  daily_digest BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 9. In-App Notifications
+CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   post_id INT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_like (user_id, post_id),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Sample departments (insert only if empty; safe to re-run)
-INSERT IGNORE INTO departments (name) VALUES
-  ('Computer Science'),
-  ('Electronics'),
-  ('Mechanical'),
-  ('Civil'),
-  ('Electrical'),
-  ('Information Technology'),
-  ('Mathematics'),
-  ('Physics');
+-- 10. Bookmarks Table
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  post_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_bookmark (user_id, post_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 11. Post Analytics Table
+CREATE TABLE IF NOT EXISTS post_analytics (
+  post_id INT PRIMARY KEY,
+  notifications_sent INT DEFAULT 0,
+  notifications_opened INT DEFAULT 0,
+  unique_views INT DEFAULT 0,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 12. Chat Groups Table
+CREATE TABLE IF NOT EXISTS chat_groups (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT NULL,
+  channel_id INT NULL,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- 13. Chat Group Members Table
+CREATE TABLE IF NOT EXISTS chat_group_members (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  group_id INT NOT NULL,
+  user_id INT NOT NULL,
+  role ENUM('admin', 'member') NOT NULL DEFAULT 'member',
+  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_member (group_id, user_id),
+  FOREIGN KEY (group_id) REFERENCES chat_groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 14. Chat Messages Table
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  group_id INT NOT NULL,
+  sender_id INT NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (group_id) REFERENCES chat_groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 15. Audit Logs Table
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  actor_id INT NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  details TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 16. Reports Table
+CREATE TABLE IF NOT EXISTS reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  reporter_id INT NOT NULL,
+  post_id INT NOT NULL,
+  reason VARCHAR(255) NOT NULL,
+  status ENUM('pending', 'reviewed', 'ignored') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Seed Data (Basic Departments)
+INSERT IGNORE INTO departments (name, code) VALUES
+  ('Computer Science', 'CSE'),
+  ('Electronics', 'ECE'),
+  ('Mechanical', 'ME'),
+  ('Civil', 'CV'),
+  ('Electrical', 'EEE'),
+  ('Information Technology', 'ISE'),
+  ('Mathematics', 'MATH'),
+  ('Physics', 'PHY');
+
+-- Seed associated channels for the departments
+INSERT IGNORE INTO channels (type, department_id, name)
+SELECT 'department', id, name FROM departments;
