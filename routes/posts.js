@@ -72,17 +72,39 @@ router.get('/', authRequired, async (req, res) => {
 // POST /api/posts
 router.post('/', authRequired, requirePublisher, upload.single('image'), async (req, res) => {
   try {
-    const { title, body, level, type, channel_id, is_pinned } = req.body || {};
+    const { title, content, target_type, post_type, post_level, department_ids, club_ids } = req.body || {};
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    // Map UI variables to backend schema variables
+    const body = content;
+    const type = post_type;
+    const level = post_level || 'college_wide';
     
     if (!title || !body || !level || !type) {
       return res.status(400).json({ error: 'Title, body, level, and type are required' });
     }
 
+    // Bridge the UI's multi-select arrays to our unified single channel_id
+    let channel_id = null;
+    if (target_type === 'department' && department_ids) {
+      const ids = JSON.parse(department_ids);
+      if (ids.length > 0) {
+        const [chanRows] = await pool.query('SELECT id FROM channels WHERE department_id = ?', [ids[0]]);
+        if (chanRows.length) channel_id = chanRows[0].id;
+      }
+    } else if (target_type === 'club' && club_ids) {
+      const ids = JSON.parse(club_ids);
+      if (ids.length > 0) {
+        const [chanRows] = await pool.query('SELECT id FROM channels WHERE club_id = ?', [ids[0]]);
+        if (chanRows.length) channel_id = chanRows[0].id;
+      }
+    }
+
     if (req.user.role === 'publisher') {
-      if (level === 'college_wide') {
+      if (level === 'college_wide' || target_type === 'all') {
         return res.status(403).json({ error: 'Publishers cannot create college_wide broadcasts' });
       }
+      
       const [chanRows] = await pool.query('SELECT department_id, club_id FROM channels WHERE id = ?', [channel_id]);
       if (chanRows.length === 0) return res.status(404).json({ error: 'Channel not found' });
       
@@ -98,7 +120,7 @@ router.post('/', authRequired, requirePublisher, upload.single('image'), async (
     const [result] = await pool.query(
       `INSERT INTO posts (publisher_id, channel_id, title, body, level, type, image_url, is_pinned)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [req.user.id, channel_id || null, title, body, level, type, imageUrl, is_pinned === 'true' || is_pinned === true]
+      [req.user.id, channel_id, title, body, level, type, imageUrl, false]
     );
 
     res.status(201).json({ id: result.insertId });
