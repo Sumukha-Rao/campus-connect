@@ -201,6 +201,14 @@ body {
   .post-card { border-radius: 0; margin-left: -12px; margin-right: -12px; }
 }
 
+/* ===== Custom Utilities (not in Bootstrap 5) ===== */
+.fw-600 { font-weight: 600 !important; }
+.fw-700 { font-weight: 700 !important; }
+.fw-800 { font-weight: 800 !important; }
+.ls-1   { letter-spacing: 0.05em; }
+.bg-indigo   { background-color: #6366f1 !important; }
+.text-indigo { color: #6366f1 !important; }
+
 /* ===== Notifications ===== */
 .notif-dropdown {
   width: 340px;

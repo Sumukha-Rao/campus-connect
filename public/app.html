@@ -43,7 +43,7 @@
           <div class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-0 notif-dropdown" id="notifDropdown">
             <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom sticky-top bg-white rounded-top-4">
               <span class="fw-700 small">Notifications</span>
-              <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none" id="markAllReadBtn">Mark all read</button>
+              <button type="button" class="btn btn-link btn-sm p-0 text-muted text-decoration-none" id="markAllReadBtn">Mark all read</button>
             </div>
             <div id="notifList">
               <div class="text-center text-muted py-4 small">No notifications yet</div>
@@ -51,7 +51,7 @@
           </div>
         </div>
 
-        <button class="btn btn-sm btn-light rounded-circle" id="logoutBtn" title="Logout">
+        <button type="button" class="btn btn-sm btn-light rounded-circle" id="logoutBtn" title="Logout">
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </div>
@@ -99,13 +99,13 @@
 
       <!-- Filter Bar -->
       <div class="filter-bar mb-4 overflow-x-auto">
-        <button class="btn btn-sm btn-dark rounded-pill feed-filter active" data-type="">All</button>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="event">Events</button>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="hackathon">Hackathons</button>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="placement talk">Placements</button>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="circular">Notices</button>
+        <button type="button" class="btn btn-sm btn-dark rounded-pill feed-filter active" data-type="">All</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="event">Events</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="hackathon">Hackathons</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="placement talk">Placements</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill feed-filter" data-type="circular">Notices</button>
         <div class="ms-auto d-flex gap-2">
-          <select id="deptFilter" class="form-select form-select-sm rounded-pill border-0 bg-light" style="width: auto;">
+          <select id="deptFilter" class="form-select form-select-sm rounded-pill border-0 bg-light" style="width: auto;" aria-label="Filter by department">
              <option value="">All Departments</option>
           </select>
         </div>
@@ -124,23 +124,23 @@
             <h4 class="fw-800 mb-4">Create Announcement</h4>
             <form id="composeForm">
               <div class="mb-4">
-                <label class="form-label fw-600">Title</label>
+                <label for="postTitle" class="form-label fw-600">Title</label>
                 <input id="postTitle" type="text" class="form-control rounded-3 border-light bg-light" placeholder="What's happening?" required>
               </div>
-              
+
               <div class="mb-4">
-                <label class="form-label fw-600">Content</label>
+                <label for="postContent" class="form-label fw-600">Content</label>
                 <textarea id="postContent" class="form-control rounded-4 border-light bg-light" rows="6" placeholder="Share more details..."></textarea>
               </div>
 
               <div class="mb-4">
-                <label class="form-label fw-600 text-primary"><i class="bi bi-image me-2"></i>Add Media</label>
+                <label for="postImage" class="form-label fw-600 text-primary"><i class="bi bi-image me-2"></i>Add Media</label>
                 <input type="file" id="postImage" class="form-control border-dashed" accept="image/*">
               </div>
 
               <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                  <label class="form-label fw-600">Post Category</label>
+                  <label for="postType" class="form-label fw-600">Post Category</label>
                   <select id="postType" class="form-select rounded-3 border-light bg-light" required>
                     <option value="" disabled selected>Select type</option>
                     <option value="event">Event</option>
@@ -153,7 +153,7 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-600">Audience</label>
+                  <label for="audienceSelect" class="form-label fw-600">Audience</label>
                   <select id="audienceSelect" class="form-select rounded-3 border-light bg-light" required>
                     <option value="all">Everyone (College Wide)</option>
                     <option value="department">Specific Department</option>
@@ -170,11 +170,11 @@
 
               <div class="row g-3 mb-4">
                 <div class="col-md-6">
-                  <label class="form-label fw-600">Schedule Posting (Optional)</label>
+                  <label for="scheduledAt" class="form-label fw-600">Schedule Posting (Optional)</label>
                   <input id="scheduledAt" type="datetime-local" class="form-control rounded-3 border-light bg-light">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label fw-600">Event Date (If applicable)</label>
+                  <label for="eventDate" class="form-label fw-600">Event Date (If applicable)</label>
                   <input id="eventDate" type="date" class="form-control rounded-3 border-light bg-light">
                 </div>
               </div>
@@ -203,7 +203,7 @@
             <div class="card-body p-4">
               <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-800 mb-0">Member Directory</h5>
-                <button class="btn btn-sm btn-light rounded-pill" id="refreshUsersBtn"><i class="bi bi-arrow-repeat"></i></button>
+                <button type="button" class="btn btn-sm btn-light rounded-pill" id="refreshUsersBtn" title="Refresh users"><i class="bi bi-arrow-repeat"></i></button>
               </div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle">
