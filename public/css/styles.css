@@ -200,3 +200,37 @@ body {
 @media (max-width: 768px) {
   .post-card { border-radius: 0; margin-left: -12px; margin-right: -12px; }
 }
+
+/* ===== Notifications ===== */
+.notif-dropdown {
+  width: 340px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.notif-badge {
+  font-size: 0.6rem;
+}
+
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-item.unread {
+  background: #eef2ff;
+}
+
+.notif-item.unread:hover {
+  background: #e0e7ff;
+}

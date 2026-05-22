@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /c/Users/sumuk/OneDrive/Desktop/\"mad pbl\"/campus-connect && ls -la routes/)",
+      "Read(//c/c/Users/sumuk/OneDrive/Desktop/mad pbl/campus-connect/**)"
+    ]
+  }
+}

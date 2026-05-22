@@ -38,6 +38,8 @@
   loadFeed();
   loadStories();
   loadMetadata(); // Load depts and clubs
+  loadNotifications();
+  setInterval(loadNotifications, 60000); // Poll every 60s
 
   // --- Network ---
   window.addEventListener('online', () => { if (offlineBadge) offlineBadge.classList.add('d-none'); loadFeed(); });
@@ -489,5 +491,70 @@
     navigator.clipboard.writeText(`${window.location.origin}/app.html?post=${id}`);
     alert('Link copied to clipboard!');
   };
+
+  // --- Notifications ---
+  const notifBadge = document.getElementById('notifBadge');
+  const notifList = document.getElementById('notifList');
+  const markAllReadBtn = document.getElementById('markAllReadBtn');
+
+  async function loadNotifications() {
+    try {
+      const data = await API.get('/api/notifications');
+      renderNotifications(data.notifications || [], data.unread_count || 0);
+    } catch (e) { /* silent fail — non-critical */ }
+  }
+
+  function renderNotifications(notifications, unreadCount) {
+    if (unreadCount > 0) {
+      notifBadge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      notifBadge.classList.remove('d-none');
+    } else {
+      notifBadge.classList.add('d-none');
+    }
+
+    if (!notifications.length) {
+      notifList.innerHTML = '<div class="text-center text-muted py-4 small">No notifications yet</div>';
+      return;
+    }
+
+    const typeIcon = {
+      subscription_confirmed: 'bi-check-circle-fill text-success',
+      subscription_pending: 'bi-clock-fill text-warning',
+      subscription_approved: 'bi-patch-check-fill text-primary',
+      new_post: 'bi-megaphone-fill text-indigo'
+    };
+
+    notifList.innerHTML = notifications.map(n => `
+      <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" onclick="window.markNotifRead(${n.id}, this)">
+        <div class="d-flex align-items-start gap-2">
+          <i class="bi ${typeIcon[n.type] || 'bi-bell-fill text-muted'} mt-1" style="flex-shrink:0"></i>
+          <div class="flex-grow-1">
+            <div class="fw-600 small">${escapeHtml(n.title)}</div>
+            <div class="text-muted" style="font-size:0.78rem">${escapeHtml(n.message)}</div>
+            <div class="text-muted mt-1" style="font-size:0.7rem">${timeAgo(n.created_at)}</div>
+          </div>
+          ${!n.is_read ? '<span class="rounded-circle bg-primary d-inline-block ms-1" style="width:7px;height:7px;flex-shrink:0;margin-top:5px"></span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.markNotifRead = async function(id, el) {
+    if (el.classList.contains('unread')) {
+      el.classList.remove('unread');
+      try { await API.post(`/api/notifications/${id}/read`); } catch (e) {}
+      loadNotifications();
+    }
+  };
+
+  markAllReadBtn.addEventListener('click', async () => {
+    try {
+      await API.post('/api/notifications/read-all');
+      loadNotifications();
+    } catch (e) {}
+  });
+
+  // Reload notifications when bell dropdown opens
+  document.getElementById('notifBell').addEventListener('show.bs.dropdown', loadNotifications);
 
 })();

@@ -117,6 +117,30 @@ router.post('/', authRequired, requirePublisher, upload.single('image'), async (
       [req.user.id, channel_id, title, body, level, type, imageUrl, false]
     );
 
+    // Notify all approved subscribers of this channel about the new post
+    if (channel_id) {
+      const [channelRows] = await pool.query('SELECT name FROM channels WHERE id = ?', [channel_id]);
+      const channelName = channelRows.length ? channelRows[0].name : 'your channel';
+
+      const [subscribers] = await pool.query(
+        'SELECT subscriber_id FROM subscriptions WHERE channel_id = ? AND status = "approved" AND subscriber_id != ?',
+        [channel_id, req.user.id]
+      );
+
+      if (subscribers.length > 0) {
+        const notifValues = subscribers.map(s => [
+          s.subscriber_id,
+          'new_post',
+          `New: ${title}`,
+          `${req.user.full_name} posted in "${channelName}": ${title}`
+        ]);
+        await pool.query(
+          'INSERT INTO notifications (user_id, type, title, message) VALUES ?',
+          [notifValues]
+        );
+      }
+    }
+
     res.status(201).json({ id: result.insertId });
   } catch (err) {
     console.error('Create post error:', err);

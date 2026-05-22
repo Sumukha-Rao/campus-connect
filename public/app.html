@@ -33,6 +33,24 @@
           <i class="bi bi-search position-absolute text-muted" style="right: 12px; top: 6px;"></i>
         </div>
         <span class="text-muted small fw-600" id="whoAmI"></span>
+
+        <!-- Notification Bell -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-light rounded-circle position-relative" id="notifBell" title="Notifications" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-badge d-none"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-0 notif-dropdown" id="notifDropdown">
+            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom sticky-top bg-white rounded-top-4">
+              <span class="fw-700 small">Notifications</span>
+              <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none" id="markAllReadBtn">Mark all read</button>
+            </div>
+            <div id="notifList">
+              <div class="text-center text-muted py-4 small">No notifications yet</div>
+            </div>
+          </div>
+        </div>
+
         <button class="btn btn-sm btn-light rounded-circle" id="logoutBtn" title="Logout">
           <i class="bi bi-box-arrow-right"></i>
         </button>

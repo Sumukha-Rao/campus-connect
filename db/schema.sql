@@ -172,7 +172,20 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 12. Stories Table
+-- 12. Notifications Table
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  type ENUM('subscription_confirmed', 'subscription_pending', 'subscription_approved', 'new_post') NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_unread (user_id, is_read)
+) ENGINE=InnoDB;
+
+-- 13. Stories Table
 CREATE TABLE IF NOT EXISTS stories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   publisher_id INT NOT NULL,
