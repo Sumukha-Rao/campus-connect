@@ -452,17 +452,16 @@
     }
   };
 
-  // Bell toggles per-community push opt-in. Turning it ON also requests browser
-  // notification permission; if the user blocks it, we show a banner and keep the bell off.
+  // Bell toggles per-community push opt-in. Turning it ON registers a real Web Push
+  // subscription (VAPID) with this browser, then flags the channel for notifications.
   window.toggleBell = async function(channelId, enable) {
     try {
       if (enable) {
-        if ('Notification' in window && Notification.permission !== 'granted') {
-          const perm = await Notification.requestPermission();
-          if (perm !== 'granted') {
-            showNotificationBlockedBanner();
-            return; // do not mark bell active
-          }
+        try {
+          await ensurePushSubscription();
+        } catch (e) {
+          showPushHelp(e.message);
+          return; // leave bell off
         }
       }
       await API.patch(`/api/channels/${channelId}/bell`, { enabled: enable });
@@ -472,16 +471,57 @@
     }
   };
 
-  function showNotificationBlockedBanner() {
-    if (document.getElementById('notifBlockedBanner')) return;
+  // Ensure this browser has an active push subscription registered on the server.
+  async function ensurePushSubscription() {
+    // Push requires a secure context. On phones over plain HTTP (LAN IP) this is the
+    // usual reason the bell "doesn't work" even though OS notifications are enabled.
+    if (!window.isSecureContext) throw new Error('insecure');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      throw new Error('unsupported');
+    }
+
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('denied');
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const { key } = await API.get('/api/push/vapid-public-key');
+      if (!key) throw new Error('server-disabled');
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key)
+      });
+    }
+    await API.post('/api/push/subscribe', { subscription: sub.toJSON() });
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    const arr = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+    return arr;
+  }
+
+  function showPushHelp(reason) {
+    const messages = {
+      insecure: 'Push notifications need a secure (HTTPS) connection. On a phone, open the app over HTTPS or install it to your home screen — plain http:// over your network won’t work.',
+      unsupported: 'This browser doesn’t support push notifications. On iPhone, install the app to your Home Screen first (iOS 16.4+).',
+      denied: 'Notifications are blocked for this site. Allow them in your browser/site settings, then try the bell again.',
+      'server-disabled': 'Push is not configured on the server (missing VAPID keys).'
+    };
+    const text = messages[reason] || ('Could not enable notifications: ' + reason);
+    if (document.getElementById('notifBlockedBanner')) document.getElementById('notifBlockedBanner').remove();
     const el = document.createElement('div');
     el.id = 'notifBlockedBanner';
     el.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3 shadow';
     el.style.zIndex = '2000';
-    el.innerHTML = 'Notifications blocked. Enable them in your browser settings to receive alerts.' +
-      '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    el.style.maxWidth = '92%';
+    el.innerHTML = escapeHtml(text) + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 7000);
+    setTimeout(() => el.remove(), 9000);
   }
 
   // --- Admin Dashboard ---

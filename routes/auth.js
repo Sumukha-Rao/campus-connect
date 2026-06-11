@@ -10,8 +10,8 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, full_name, email, department_id, role } = req.body || {};
-    
+    const { username, password, full_name, email, department_id } = req.body || {};
+
     if (!username || !password || !full_name || !email) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -31,9 +31,10 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
     
-    // Publishers require admin approval, Students are auto-approved
-    const finalRole = role === 'publisher' ? 'publisher' : 'viewer';
-    const isActive = finalRole === 'publisher' ? false : true;
+    // Self-registration always creates an active viewer (student).
+    // Only an admin can later promote a user to publisher.
+    const finalRole = 'viewer';
+    const isActive = true;
     const deptId = department_id ? parseInt(department_id) : null;
 
     const [result] = await pool.query(
@@ -108,8 +109,9 @@ router.post('/login', async (req, res) => {
 
     const user = rows[0];
     
+    // Banned users are deactivated by an admin. Block login with a clear message.
     if (!user.is_active) {
-      return res.status(403).json({ error: 'Your account is currently pending Admin approval.' });
+      return res.status(403).json({ error: 'You are banned.' });
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);

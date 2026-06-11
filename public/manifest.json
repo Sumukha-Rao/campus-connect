@@ -1,13 +1,13 @@
 {
-  "name": "CampusConnect — RVCE",
-  "short_name": "CampusConnect",
+  "name": "RVCE Connect",
+  "short_name": "RVCE Connect",
   "description": "The official unified notice board for RV College of Engineering. Stay updated with department circulars, hackathons, placements, and club events.",
   "start_url": "/app.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#1a6b3a",
-  "background_color": "#f8f9fa",
+  "theme_color": "#0f7a4d",
+  "background_color": "#f4f7f5",
   "lang": "en-IN",
   "dir": "ltr",
   "categories": ["education", "productivity", "social"],
@@ -23,14 +23,14 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "CampusConnect Feed on Mobile"
+      "label": "RVCE Connect Feed on Mobile"
     },
     {
       "src": "/icons/screenshot-desktop.png",
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "CampusConnect Dashboard on Desktop"
+      "label": "RVCE Connect Dashboard on Desktop"
     }
   ],
   "icons": [

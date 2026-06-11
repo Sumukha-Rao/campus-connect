@@ -1,5 +1,5 @@
 // service-worker.js — CampusConnect PWA: role-aware hybrid caching + background sync
-const SHELL_CACHE = 'cc-shell-v1';   // App shell (HTML, CSS, JS, icons, fonts)
+const SHELL_CACHE = 'cc-shell-v3';   // App shell (HTML, CSS, JS, icons, fonts)
 const POSTS_CACHE = 'cc-posts-v1';   // API GET responses (posts/channels)
 const OFFLINE_QUEUE = 'cc-queue-v1'; // Reserved cache name (queue itself lives in IndexedDB)
 
@@ -208,9 +208,9 @@ async function syncPendingPosts() {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = { body: event.data && event.data.text() }; }
-  const title = data.title || 'CampusConnect';
+  const title = data.title || 'RVCE Connect';
   const options = {
-    body: data.body || 'New announcement on CampusConnect',
+    body: data.body || 'New announcement on RVCE Connect',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     data: { postId: data.postId || null }

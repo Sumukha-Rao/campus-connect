@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   INDEX idx_actor (actor_id)
 ) ENGINE=InnoDB;
 
+-- 15. Web Push Subscriptions (browser push endpoints per user/device)
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  endpoint VARCHAR(512) UNIQUE NOT NULL,
+  p256dh VARCHAR(255) NOT NULL,
+  auth VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_push_user (user_id)
+) ENGINE=InnoDB;
+
 -- ============================================================================
 -- 1. Departments Data
 -- Standard core engineering departments at RVCE

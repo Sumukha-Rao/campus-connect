@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const pool = require('../db');
 const { authRequired, requirePublisher } = require('../middleware/auth');
+const { notifyChannelSubscribers } = require('./push');
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.get('/', authRequired, async (req, res) => {
       JOIN users u ON p.publisher_id = u.id
       LEFT JOIN channels c ON p.channel_id = c.id
       WHERE ${whereClause}
-      ORDER BY p.is_pinned DESC, p.created_at DESC
+      ORDER BY p.created_at DESC, p.id DESC
       LIMIT 100
     `;
 
@@ -155,6 +156,15 @@ router.post('/', authRequired, requirePublisher, upload.single('image'), async (
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.user.id, channel_id, title, body, level, type, imageUrl, communityName, false, expiresAt]
     );
+
+    // Fire push notifications to bell-enabled subscribers (non-blocking).
+    if (channel_id) {
+      notifyChannelSubscribers(channel_id, {
+        title: communityName ? `New post in ${communityName}` : 'New campus announcement',
+        body: title,
+        postId: result.insertId
+      }, req.user.id);
+    }
 
     res.status(201).json({ id: result.insertId });
   } catch (err) {

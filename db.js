@@ -11,7 +11,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  charset: 'utf8mb4_unicode_ci'
+  charset: 'utf8mb4_unicode_ci',
+  // Treat DB datetimes as UTC so the JSON timestamps sent to the client represent
+  // the correct instant. Without this, mysql2 assumes the Node process's local
+  // timezone and shifts every timestamp (e.g. a "just now" post shows hours off).
+  timezone: 'Z'
 });
 
 module.exports = pool;
