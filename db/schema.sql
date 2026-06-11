@@ -219,7 +219,6 @@ WHERE NOT EXISTS (SELECT 1 FROM departments WHERE id = 4);
 -- ============================================================================
 -- 2. Users Data
 -- Roles used: 'publisher' (HODs, Club Heads) and 'viewer' (Students)
--- strictly NO admins or principals included.
 -- ============================================================================
 INSERT INTO users (id, username, password_hash, full_name, role, department_id, phone_number, email) 
 SELECT 1, 'hod_cse', '$2a$10$NCMYgCUAz/VvBoUlSq3ZBeyIanMcTllHlKAtweW0RVaWd3xTJjXby', 'Dr. Shobha G', 'publisher', 1, '9876500001', 'hod.cse@rvce.edu.in'
