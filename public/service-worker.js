@@ -1,7 +1,7 @@
-// service-worker.js - Campus Connect PWA cache
-const STATIC_CACHE = 'cc-static-v5';
-const RUNTIME_CACHE = 'cc-runtime-v5';
-const POSTS_CACHE = 'cc-posts-v4';
+// service-worker.js - Campus Connect PWA cache + Push Notifications
+const STATIC_CACHE = 'cc-static-v6';
+const RUNTIME_CACHE = 'cc-runtime-v6';
+const POSTS_CACHE = 'cc-posts-v5';
 
 const STATIC_ASSETS = [
   '/',
@@ -132,3 +132,68 @@ async function staleWhileRevalidate(req, cacheName) {
     .catch(() => cached);
   return cached || networkPromise;
 }
+
+// ================== PUSH NOTIFICATIONS ==================
+
+// Handle incoming push messages
+self.addEventListener('push', event => {
+  let data = {
+    title: 'RVCE Connect',
+    body: 'You have a new notification',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: '/app.html' }
+  };
+
+  try {
+    if (event.data) {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    }
+  } catch (e) {
+    console.warn('Push parse error:', e);
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/icon-192.png',
+    tag: data.tag || 'rvce-connect-notification',
+    vibrate: [200, 100, 200],
+    data: data.data || { url: '/app.html' },
+    actions: [
+      { action: 'open', title: 'View Post' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ],
+    requireInteraction: true
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const targetUrl = event.notification.data?.url || '/app.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Focus existing tab if open
+      for (const client of windowClients) {
+        if (client.url.includes('/app.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

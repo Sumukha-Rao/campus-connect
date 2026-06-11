@@ -1,4 +1,4 @@
-// server.js - Campus Connect entry point
+// server.js - RVCE Connect entry point
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -16,6 +16,7 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const adminRoutes = require('./routes/admin');
 const clubRoutes = require('./routes/clubs');
 const departmentRoutes = require('./routes/departments');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // SPA fallback - send the main page for any non-API path
 app.get('*', (req, res, next) => {
@@ -93,7 +95,7 @@ async function bootstrap() {
 bootstrap()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`\n🚀 Campus Connect running on http://localhost:${PORT}\n`);
+      console.log(`\n RVCE Connect running on http://localhost:${PORT}\n`);
     });
   })
   .catch(err => {
