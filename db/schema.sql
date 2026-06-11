@@ -8,20 +8,20 @@ USE campus_connect;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-DROP TABLE IF EXISTS post_departments;
-DROP TABLE IF EXISTS post_clubs;
-DROP TABLE IF EXISTS stories;
-DROP TABLE IF EXISTS bookmarks;
-DROP TABLE IF EXISTS likes;
-DROP TABLE IF EXISTS chat_messages;
-DROP TABLE IF EXISTS chat_group_members;
-DROP TABLE IF EXISTS chat_groups;
-DROP TABLE IF EXISTS posts;
-DROP TABLE IF EXISTS subscriptions;
-DROP TABLE IF EXISTS channels;
-DROP TABLE IF EXISTS clubs;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS departments;
+-- DROP TABLE IF EXISTS post_departments;
+-- DROP TABLE IF EXISTS post_clubs;
+-- DROP TABLE IF EXISTS stories;
+-- DROP TABLE IF EXISTS bookmarks;
+-- DROP TABLE IF EXISTS likes;
+-- DROP TABLE IF EXISTS chat_messages;
+-- DROP TABLE IF EXISTS chat_group_members;
+-- DROP TABLE IF EXISTS chat_groups;
+-- DROP TABLE IF EXISTS posts;
+-- DROP TABLE IF EXISTS subscriptions;
+-- DROP TABLE IF EXISTS channels;
+-- DROP TABLE IF EXISTS clubs;
+-- DROP TABLE IF EXISTS users;
+-- DROP TABLE IF EXISTS departments;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
