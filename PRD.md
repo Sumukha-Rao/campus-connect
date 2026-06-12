@@ -94,10 +94,10 @@ graph TD
 ### ✅ Completed & Running
 
 #### Backend & Database
-- **Database schema (actual, in `db/schema.sql`)** — implemented tables (MySQL 8, InnoDB):
+- **Database schema (actual, in `db/schema.sql`)** — 12 implemented tables (MySQL 8, InnoDB):
   `departments`, `users`, `clubs`, `channels`, `subscriptions` (with `push_notifications_enabled`),
-  `posts` (with `expires_at`, `community_name`), `chat_groups`, `chat_group_members`, `chat_messages`,
-  `likes`, `bookmarks`, `stories`, `expired_posts` (archive), `audit_logs`, and `push_subscriptions`.
+  `posts` (with `expires_at`, `community_name`), `likes`, `bookmarks`, `stories`,
+  `expired_posts` (archive), `audit_logs`, and `push_subscriptions`.
   - Seed data uses `INSERT IGNORE` so the schema can be re-applied idempotently.
   - Column migrations (`subscriptions.push_notifications_enabled`, `posts.community_name`, `channels.logo_url`) run idempotently in JS at boot (MySQL 8 has no `ADD COLUMN IF NOT EXISTS`).
 - **Authentication** — JWT login/register; **self-registration creates active viewers only**; admins promote to publisher.
@@ -133,7 +133,7 @@ graph TD
 
 ### 📋 Future Scope (vision retained in later sections)
 
-- Real-time coordination **chat** (Socket.io) — tables exist, no UI/gateway yet.
+- Real-time coordination **chat** (Socket.io) — not built (chat tables were removed from the schema; would be re-added with the feature).
 - **Academic calendar**, **placement RSVPs**, **post analytics**, **notification mute preferences**, **daily digest** — not built (no tables in the current schema).
 - **Full-text search** (FULLTEXT index exists on `posts`), **rich-text editor**, **multi-image** posts.
 - **Kannada i18n** and a formal **WCAG AA** accessibility pass.
@@ -144,7 +144,7 @@ graph TD
 
 This schema is optimized for **MySQL 8** (InnoDB engine). It expands the existing schema to accommodate all requested features while keeping the system manageable for a student.
 
-> **⚠️ Note:** The block below is the **target/extended design**, not the exact current database. The **authoritative, implemented schema is `db/schema.sql`** (see Section 3 for the actual table list). Notable differences: the live schema uses `posts.image_url`/`community_name` (not `attachment_url`), the post `type` enum currently has no `placement_talk` value, `subscriptions` carries `push_notifications_enabled`, `channels` carries `logo_url`, and an `expired_posts` archive table exists. The `notification_preferences`, `notifications`, `placement_rsvps`, `post_analytics`, `academic_calendar`, `post_calendar_links`, and `reports` tables below are **future scope** and are not yet created.
+> **⚠️ Note:** The block below is the **target/extended design**, not the exact current database. The **authoritative, implemented schema is `db/schema.sql`** (see Section 3 for the actual table list). Notable differences: the live schema uses `posts.image_url`/`community_name` (not `attachment_url`), the post `type` enum currently has no `placement_talk` value, `subscriptions` carries `push_notifications_enabled`, `channels` carries `logo_url`, and an `expired_posts` archive table exists. The `chat_groups`, `chat_group_members`, `chat_messages`, `notification_preferences`, `notifications`, `placement_rsvps`, `post_analytics`, `academic_calendar`, `post_calendar_links`, and `reports` tables below are **future scope** and are not yet created (the chat tables were removed from the live schema until the chat feature is built).
 
 ### ER Schema Diagram
 
@@ -187,17 +187,17 @@ erDiagram
         int subscriber_id FK
         int channel_id FK
         enum status
+        boolean push_notifications_enabled
     }
-    CHAT_GROUPS {
+    PUSH_SUBSCRIPTIONS {
         int id PK
-        string name
-        int channel_id FK
+        int user_id FK
+        string endpoint
     }
-    CHAT_MESSAGES {
+    EXPIRED_POSTS {
         int id PK
-        int group_id FK
-        int sender_id FK
-        string message
+        int original_post_id
+        int channel_id
     }
 
     DEPARTMENTS ||--o{ USERS : "groups by"
@@ -211,9 +211,8 @@ erDiagram
     CHANNELS ||--o{ POSTS : "receives broadcast"
     USERS ||--o{ POSTS : "authors (Publisher)"
     
-    CHANNELS ||--o{ CHAT_GROUPS : "owns"
-    CHAT_GROUPS ||--o{ CHAT_MESSAGES : "contains"
-    USERS ||--o{ CHAT_MESSAGES : "sends"
+    USERS ||--o{ PUSH_SUBSCRIPTIONS : "registers device"
+    POSTS ||--o| EXPIRED_POSTS : "archived to"
 ```
 
 ### Table Definitions

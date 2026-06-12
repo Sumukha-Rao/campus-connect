@@ -92,10 +92,13 @@
   }
 
   // Communities the current user is allowed to post from.
+  // Publishers can post from any community they own (assigned dept / managed clubs)
+  // OR any community they've joined (subscribed to).
   function myPostableCommunities() {
     if (user.role === 'admin') return channelsCache;
     const managed = user.managed_club_ids || [];
     return channelsCache.filter(c =>
+      c.my_status === 'approved' ||
       (c.department_id != null && c.department_id === user.department_id) ||
       (c.club_id != null && managed.includes(c.club_id))
     );

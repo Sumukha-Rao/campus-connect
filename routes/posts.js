@@ -125,11 +125,21 @@ router.post('/', authRequired, requirePublisher, upload.single('image'), async (
       if (chanRows.length === 0) return res.status(404).json({ error: 'Channel not found' });
 
       const chan = chanRows[0];
+      const managedClubIds = req.user.managed_club_ids || [];
       const isDeptMatch = chan.department_id !== null && chan.department_id === req.user.department_id;
-      const isClubMatch = chan.club_id !== null && req.user.managed_club_ids.includes(chan.club_id);
+      const isClubMatch = chan.club_id !== null && managedClubIds.includes(chan.club_id);
 
-      if (!isDeptMatch && !isClubMatch) {
-        return res.status(403).json({ error: 'You can only post to your assigned community.' });
+      // Owns it OR has joined (subscribed to) it.
+      let allowed = isDeptMatch || isClubMatch;
+      if (!allowed) {
+        const [sub] = await pool.query(
+          'SELECT id FROM subscriptions WHERE subscriber_id = ? AND channel_id = ?',
+          [req.user.id, channel_id]
+        );
+        allowed = sub.length > 0;
+      }
+      if (!allowed) {
+        return res.status(403).json({ error: 'You can only post to communities you own or have joined.' });
       }
       communityName = chan.name;
     } else if (channel_id) {

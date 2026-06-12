@@ -8,14 +8,12 @@ USE campus_connect;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
--- DROP TABLE IF EXISTS post_departments;
--- DROP TABLE IF EXISTS post_clubs;
+-- DROP TABLE IF EXISTS push_subscriptions;
+-- DROP TABLE IF EXISTS audit_logs;
+-- DROP TABLE IF EXISTS expired_posts;
 -- DROP TABLE IF EXISTS stories;
 -- DROP TABLE IF EXISTS bookmarks;
 -- DROP TABLE IF EXISTS likes;
--- DROP TABLE IF EXISTS chat_messages;
--- DROP TABLE IF EXISTS chat_group_members;
--- DROP TABLE IF EXISTS chat_groups;
 -- DROP TABLE IF EXISTS posts;
 -- DROP TABLE IF EXISTS subscriptions;
 -- DROP TABLE IF EXISTS channels;
@@ -120,42 +118,7 @@ CREATE TABLE IF NOT EXISTS posts (
   FULLTEXT INDEX idx_search (title, body)
 ) ENGINE=InnoDB;
 
--- 7. Chat Groups Table
-CREATE TABLE IF NOT EXISTS chat_groups (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT NULL,
-  channel_id INT NULL,
-  created_by INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
-) ENGINE=InnoDB;
-
--- 8. Chat Group Members Table
-CREATE TABLE IF NOT EXISTS chat_group_members (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  group_id INT NOT NULL,
-  user_id INT NOT NULL,
-  role ENUM('admin', 'member') NOT NULL DEFAULT 'member',
-  joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_member (group_id, user_id),
-  FOREIGN KEY (group_id) REFERENCES chat_groups(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 9. Chat Messages Table
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  group_id INT NOT NULL,
-  sender_id INT NOT NULL,
-  message TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (group_id) REFERENCES chat_groups(id) ON DELETE CASCADE,
-  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- 10. Likes Table
+-- 7. Likes Table
 CREATE TABLE IF NOT EXISTS likes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -166,7 +129,7 @@ CREATE TABLE IF NOT EXISTS likes (
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 11. Bookmarks Table
+-- 8. Bookmarks Table
 CREATE TABLE IF NOT EXISTS bookmarks (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -177,7 +140,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 12. Stories Table
+-- 9. Stories Table
 CREATE TABLE IF NOT EXISTS stories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   publisher_id INT NOT NULL,
@@ -188,7 +151,7 @@ CREATE TABLE IF NOT EXISTS stories (
   FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 13. Expired Posts Table (archive of auto-removed posts; intentionally NOT FK-linked to posts)
+-- 10. Expired Posts Table (archive of auto-removed posts; intentionally NOT FK-linked to posts)
 CREATE TABLE IF NOT EXISTS expired_posts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   original_post_id INT NOT NULL,
@@ -209,7 +172,7 @@ CREATE TABLE IF NOT EXISTS expired_posts (
   INDEX idx_channel (channel_id)
 ) ENGINE=InnoDB;
 
--- 14. Audit Logs Table (admin actions such as post deletion)
+-- 11. Audit Logs Table (admin actions such as post deletion)
 CREATE TABLE IF NOT EXISTS audit_logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   actor_id INT NULL,
@@ -220,7 +183,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   INDEX idx_actor (actor_id)
 ) ENGINE=InnoDB;
 
--- 15. Web Push Subscriptions (browser push endpoints per user/device)
+-- 12. Web Push Subscriptions (browser push endpoints per user/device)
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -306,32 +269,7 @@ INSERT IGNORE INTO posts (id, publisher_id, channel_id, title, body, level, type
 (4, 4, 4, 'Unity 3D Game Jam', '48 hours to build a game. Theme will be announced on the spot. Pizza and Redbull on us.', 'club', 'hackathon', '/uploads/gamejam_poster.png', FALSE, NOW(), DATE_ADD(NOW(), INTERVAL 5 DAY));
 
 -- ============================================================================
--- 7. Chat Groups Data
--- ============================================================================
-INSERT IGNORE INTO chat_groups (id, name, description, channel_id, created_by) VALUES
-(1, 'DebSoc Core', 'Logistics planning for RV APD', 3, 3),
-(2, 'CSE 4th Sem Project Group', 'Discussions for the upcoming mini-projects', 1, 1);
-
--- ============================================================================
--- 8. Chat Group Members Data
--- ============================================================================
-INSERT IGNORE INTO chat_group_members (id, group_id, user_id, role) VALUES
-(1, 1, 3, 'admin'),  -- Kavya (Debsoc head)
-(2, 1, 6, 'member'), -- Shruti
-(3, 2, 1, 'admin'),  -- Dr. Shobha
-(4, 2, 5, 'member'); -- Bharath
-
--- ============================================================================
--- 9. Chat Messages Data
--- ============================================================================
-INSERT IGNORE INTO chat_messages (id, group_id, sender_id, message) VALUES
-(1, 1, 3, 'Has the student union approved our budget for the trophy engraving?'),
-(2, 1, 6, 'Yes, they signed the paper this morning. Ill collect the cheque from the accounts section.'),
-(3, 2, 1, 'Students, ensure your mini-project abstracts are submitted by 5 PM today.'),
-(4, 2, 5, 'Maam, can we use PostgreSQL instead of MySQL for the backend?');
-
--- ============================================================================
--- 10. Likes Data
+-- 7. Likes Data
 -- Students liking the Game Jam and Debate posts
 -- ============================================================================
 INSERT IGNORE INTO likes (id, user_id, post_id) VALUES
@@ -341,7 +279,7 @@ INSERT IGNORE INTO likes (id, user_id, post_id) VALUES
 (4, 7, 2); -- Amith liked the CNC workshop
 
 -- ============================================================================
--- 11. Bookmarks Data
+-- 8. Bookmarks Data
 -- Students saving important lab/workshop notices for later
 -- ============================================================================
 INSERT IGNORE INTO bookmarks (id, user_id, post_id) VALUES
@@ -350,7 +288,7 @@ INSERT IGNORE INTO bookmarks (id, user_id, post_id) VALUES
 (3, 6, 3); -- Shruti bookmarked the Debate tournament
 
 -- ============================================================================
--- 12. Stories Data
+-- 9. Stories Data
 -- Temporary 24-hour visual updates by Club Heads/Publishers
 -- ============================================================================
 INSERT IGNORE INTO stories (id, publisher_id, media_url, caption, expires_at) VALUES
