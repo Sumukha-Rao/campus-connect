@@ -17,6 +17,7 @@ These decisions were taken during build and supersede conflicting statements els
 - **Publisher default tab.** Publishers land on the **Compose** tab on every (re)open; the Post tab is always visible to them.
 - **Moderation panel hidden** (frontend `display:none`) per product decision; the reports backend remains intact.
 - **Composer "From" + "Expires On".** A required *Post From Community* selector (maps to `channel_id`) and an optional *auto-remove* `expires_at` datetime were added; expired posts are filtered from feeds and **archived** to an `expired_posts` table by a 15-minute in-process job.
+- **Publishers post from owned *or* joined communities.** A publisher's "From" list (and the server-side check) includes communities they own (assigned department / managed clubs) **and** any community they have subscribed to — so a publisher can broadcast to any community they've joined.
 - **Admin community CRUD.** Admins create a brand-new department/club **and** its channel in one step (with an optional **custom logo** upload), and can delete communities (posts are detached to college-wide, not cascade-deleted).
 - **Viewer-only self-registration.** Signup no longer asks for a role — everyone registers as an active **viewer**; only an admin can **promote** to publisher.
 - **Unified theme + dark mode.** One RVCE-green design system with a persistent light/dark toggle on every page (login, app, offline).
@@ -474,7 +475,7 @@ RVCE Connect uses a streamlined 3-tier architecture. "Publisher" encompasses Fac
 
 | Feature Area / Capability | Admin | Publisher (Faculty / Club Leads) | Viewer (Student) |
 |:---|:---:|:---:|:---:|
-| **Create Posts** | ✅ Yes (any community / college-wide) | ✅ Yes (only to assigned community) | ❌ Read Only |
+| **Create Posts** | ✅ Yes (any community / college-wide) | ✅ Yes (communities they own or have joined) | ❌ Read Only |
 | **Delete Posts** | ✅ Yes (logged to audit) | ❌ No (admin-only) | ❌ No |
 | **Subscribe + Bell (push opt-in)** | — (implicitly associated) | — (own communities) | ✅ Yes |
 | **Community Management (create/delete + logo)** | ✅ Yes | ❌ No | ❌ No |
