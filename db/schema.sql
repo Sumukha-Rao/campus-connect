@@ -199,11 +199,25 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 -- 1. Departments Data
 -- Standard core engineering departments at RVCE
 -- ============================================================================
+-- IDs 1-4 kept stable (referenced by seeded users/channels); 5-17 are the rest of RVCE.
 INSERT IGNORE INTO departments (id, name, code) VALUES
-(1, 'Computer Science and Engineering', 'CSE'),
-(2, 'Information Science and Engineering', 'ISE'),
-(3, 'Mechanical Engineering', 'ME'),
-(4, 'Electronics and Communication Engineering', 'ECE');
+(1,  'Computer Science and Engineering', 'CSE'),
+(2,  'Information Science and Engineering', 'ISE'),
+(3,  'Mechanical Engineering', 'ME'),
+(4,  'Electronics and Communication Engineering', 'ECE'),
+(5,  'Aerospace Engineering', 'AE'),
+(6,  'Biotechnology', 'BT'),
+(7,  'Chemical Engineering', 'CHE'),
+(8,  'Civil Engineering', 'CV'),
+(9,  'Electrical and Electronics Engineering', 'EEE'),
+(10, 'Electronics and Instrumentation Engineering', 'EIE'),
+(11, 'Industrial Engineering and Management', 'IEM'),
+(12, 'Telecommunication Engineering', 'TCE'),
+(13, 'Master of Computer Applications', 'MCA'),
+(14, 'Mathematics', 'MAT'),
+(15, 'Physics', 'PHY'),
+(16, 'Chemistry', 'CHM'),
+(17, 'Humanities', 'HUM');
 
 -- ============================================================================
 -- 2. Users Data
@@ -228,9 +242,42 @@ INSERT IGNORE INTO users (id, username, password_hash, full_name, role, departme
 -- 3. Clubs Data
 -- Real cultural/tech clubs from RVCE
 -- ============================================================================
-INSERT IGNORE INTO clubs (id, name, code, description, logo_url, club_head_id, department_id, is_restricted) VALUES
-(1, 'RV Debating Society', 'DEBSOC', 'Official debating and literary society of RVCE', '/uploads/debsoc_logo.png', 3, NULL, FALSE),
-(2, 'Envisage', 'ENVISAGE', 'AR/VR and Game Development Club', '/uploads/envisage_logo.png', 4, 1, TRUE);
+-- club_head_id must reference an existing user (NOT NULL FK). Seeded publishers are
+-- users 1-4; non-demo clubs are headed by user 1 as a placeholder until reassigned.
+INSERT IGNORE INTO clubs (id, name, code, club_head_id) VALUES
+-- Technical clubs / teams
+(1,  'Ashwa Racing', 'ASHWA', 1),
+(2,  'Team Vyoma', 'VYOMA', 1),
+(3,  'Team Chimera', 'CHIMERA', 1),
+(4,  'Team Garuda', 'GARUDA', 1),
+(5,  'Team Helios', 'HELIOS', 1),
+(6,  'Solar Car Team', 'SOLAR', 1),
+(7,  'Project Jatayu', 'JATAYU', 1),
+(8,  'Team Astra', 'ASTRA', 1),
+(9,  'Team Krushi', 'KRUSHI', 1),
+(10, 'Team Antariksh', 'ANTARIKSH', 1),
+(11, 'Frequency Club', 'FREQ', 1),
+(12, 'Team Hydra', 'HYDRA', 1),
+(13, 'Entrepreneurship Development Cell', 'EDC', 1),
+(14, 'Coding Club', 'CODING', 4),
+(15, 'Team Dhruva', 'DHRUVA', 1),
+(16, 'RVCE HAM Club', 'HAM', 1),
+(17, 'SPARK', 'SPARK', 1),
+(18, 'Google Developer Groups', 'GDG', 1),
+(19, 'Women in Cloud', 'WIC', 1),
+(20, 'Accelerate Club', 'ACCEL', 1),
+(21, 'Chitrak', 'CHITRAK', 1),
+(22, 'Anoraniya', 'ANORANIYA', 1),
+-- Non-technical / cultural clubs
+(23, 'Avventura', 'AVVENTURA', 1),
+(24, 'RV Debating Society', 'DEBSOC', 3),
+(25, 'Raag', 'RAAG', 1),
+(26, 'RV Quiz Corp', 'QUIZCORP', 1),
+(27, 'Rotaract Club', 'ROTARACT', 1),
+(28, 'Alaap', 'ALAAP', 1),
+(29, 'Dance Club', 'DANCE', 1),
+(30, 'Photography Club', 'PHOTO', 1),
+(31, 'Literary Club', 'LITERARY', 1);
 
 -- is_restricted deprecated: all communities are now public. Lock every row to FALSE.
 UPDATE clubs SET is_restricted = FALSE;
@@ -242,8 +289,8 @@ UPDATE clubs SET is_restricted = FALSE;
 INSERT IGNORE INTO channels (id, type, department_id, club_id, name, description) VALUES
 (1, 'department', 1, NULL, 'CSE Notice Board', 'Academic and lab schedules for Computer Science'),
 (2, 'department', 3, NULL, 'Mechanical Bulletins', 'Workshop and CAD lab updates'),
-(3, 'club', NULL, 1, 'DebSoc Discussions', 'Model UN and debate competition announcements'),
-(4, 'club', NULL, 2, 'Envisage AR/VR', 'Game jams, Unreal Engine workshops, and XR events');
+(3, 'club', NULL, 24, 'DebSoc Discussions', 'Model UN and debate competition announcements'),
+(4, 'club', NULL, 14, 'Coding Club Updates', 'Hackathons, game jams, and competitive programming events');
 
 -- ============================================================================
 -- 5. Subscriptions Data
