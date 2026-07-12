@@ -87,6 +87,10 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
+  // Only handle http(s). Schemes like chrome-extension: can't be stored in the
+  // Cache API (put() throws), so let the browser handle them directly.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // POST /api/posts while offline → queue for background sync (publishers only).
   if (req.method === 'POST' && url.pathname === '/api/posts') {
     event.respondWith(handlePostCreation(req));
