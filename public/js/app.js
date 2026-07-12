@@ -28,6 +28,7 @@
   let clubsCache = [];
   let channelsCache = [];
   let currentFilters = { type: '', dept: '', q: '' };
+  let flushingQueue = false; // guards maybeFlushQueue against overlapping runs
 
   // --- Initialization ---
   whoAmI.textContent = user.full_name;
@@ -129,10 +130,10 @@
       const data = await API.get('/api/posts/stories');
       const stories = data.stories || [];
       const addBtn = document.getElementById('addStoryBtn');
-      
+
       storiesContainer.innerHTML = '';
       storiesContainer.appendChild(addBtn);
-      
+
       stories.forEach(s => {
         const div = document.createElement('div');
         div.className = 'story-item';
@@ -145,7 +146,7 @@
         div.onclick = () => showStoryModal(s);
         storiesContainer.appendChild(div);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function renderFeed(posts) {
@@ -166,7 +167,7 @@
   function postCardHtml(p) {
     const avatar = initials(p.publisher_name);
     const time = timeAgo(p.created_at);
-    
+
     // Dynamic Fallback Images based on Post Type
     let mediaUrl = p.image_url;
     if (!mediaUrl) {
@@ -181,10 +182,10 @@
       mediaUrl = fallbacks[p.post_type] || 'https://placehold.co/800x400/6366f1/ffffff?text=Announcement';
     }
     const media = `<img src="${mediaUrl}" class="post-image shadow-sm" style="object-fit: cover;" alt="Post attachment">`;
-    
+
     // Type Badge Colors
     const typeColors = {
-      'event': 'bg-success', 'hackathon': 'bg-danger', 'meeting': 'bg-primary', 
+      'event': 'bg-success', 'hackathon': 'bg-danger', 'meeting': 'bg-primary',
       'placement talk': 'bg-warning text-dark', 'circular': 'bg-dark'
     };
     const badgeClass = typeColors[p.post_type] || 'bg-secondary';
@@ -253,7 +254,7 @@
     let html = '<option value="" disabled selected>Select community</option>';
     // Admins may also broadcast college-wide (no specific community).
     if (user.role === 'admin') {
-      html = '<option value="" selected>Everyone (College Wide)</option>';
+      html = '<option value="" selected>Select community</option>';
     }
     html += mine.map(c =>
       `<option value="${c.id}" data-type="${c.type}">${escapeHtml(c.name)}</option>`
@@ -291,8 +292,8 @@
     // Derive the post level from the selected community type.
     const chanType = selectedOpt ? selectedOpt.dataset.type : null;
     const level = chanType === 'department' ? 'department'
-                : chanType === 'club' ? 'club'
-                : 'college_wide';
+      : chanType === 'club' ? 'club'
+        : 'college_wide';
 
     const btn = document.getElementById('composeBtn');
     btn.disabled = true;
@@ -361,8 +362,7 @@
   // it runs on the `online` event and on load, so posts publish as soon as the
   // app is open and connected. (Background Sync in the service worker is
   // unreliable — it frequently doesn't fire on a plain reconnect — so we don't
-  // depend on it.) The `flushingQueue` flag prevents overlapping runs.
-  let flushingQueue = false;
+  // depend on it.) The `flushingQueue` flag (declared up top) prevents overlaps.
   async function maybeFlushQueue() {
     if (user.role !== 'publisher' || !window.CCQueue || flushingQueue) return;
     flushingQueue = true;
@@ -432,7 +432,7 @@
     if (user.role !== 'publisher') return false;
     const managed = user.managed_club_ids || [];
     return (c.department_id != null && c.department_id === user.department_id) ||
-           (c.club_id != null && managed.includes(c.club_id));
+      (c.club_id != null && managed.includes(c.club_id));
   }
 
   async function loadCommunities() {
@@ -484,7 +484,7 @@
     } catch (e) { console.error(e); }
   }
 
-  window.subscribeCommunity = async function(channelId) {
+  window.subscribeCommunity = async function (channelId) {
     try {
       await API.post(`/api/channels/${channelId}/subscribe`);
       loadCommunities();
@@ -493,7 +493,7 @@
     }
   };
 
-  window.unsubscribeCommunity = async function(channelId, name) {
+  window.unsubscribeCommunity = async function (channelId, name) {
     if (!confirm(`Unsubscribe from "${name}"? You'll stop seeing its posts and notifications.`)) return;
     try {
       await API.del(`/api/channels/${channelId}/subscribe`);
@@ -505,7 +505,7 @@
 
   // Bell toggles per-community push opt-in. Turning it ON registers a real Web Push
   // subscription (VAPID) with this browser, then flags the channel for notifications.
-  window.toggleBell = async function(channelId, enable) {
+  window.toggleBell = async function (channelId, enable) {
     try {
       if (enable) {
         try {
@@ -695,7 +695,7 @@
     };
   }
 
-  window.removeCommunity = async function(id, name) {
+  window.removeCommunity = async function (id, name) {
     try {
       const { count } = await API.get(`/api/admin/communities/${id}/active-post-count`);
       let msg = `Remove community "${name}"?`;
@@ -761,7 +761,7 @@
     }
   }
 
-  window.approveRequest = async function(channelId, subscriberId) {
+  window.approveRequest = async function (channelId, subscriberId) {
     try {
       await API.post(`/api/channels/${channelId}/approve/${subscriberId}`);
       loadModeration();
@@ -878,11 +878,11 @@
   // General Helpers
   function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function initials(name) { return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(); }
-  function timeAgo(ts) { 
+  function timeAgo(ts) {
     const diff = (Date.now() - new Date(ts).getTime()) / 1000;
     if (diff < 60) return 'Just now';
-    if (diff < 3600) return Math.floor(diff/60) + 'm';
-    if (diff < 86400) return Math.floor(diff/3600) + 'h';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
     return new Date(ts).toLocaleDateString();
   }
   function debounce(fn, ms) {
@@ -891,18 +891,18 @@
 
   // Exposed Global Functions
   window.toggleBan = async (id, banned) => {
-    if(!confirm(`Sure you want to ${banned ? 'ban' : 'unban'}?`)) return;
+    if (!confirm(`Sure you want to ${banned ? 'ban' : 'unban'}?`)) return;
     await API.post(`/api/admin/users/${id}/ban`, { banned });
     loadAdminDashboard();
   };
   window.promoteUser = async (id) => {
-     const role = prompt("Enter role (viewer, publisher, admin):");
-     if(!role) return;
-     await API.post(`/api/admin/users/${id}/role`, { role });
-     loadAdminDashboard();
+    const role = prompt("Enter role (viewer, publisher, admin):");
+    if (!role) return;
+    await API.post(`/api/admin/users/${id}/role`, { role });
+    loadAdminDashboard();
   };
   window.deletePost = async (id) => {
-    if(!confirm('Relish this post?')) return;
+    if (!confirm('Relish this post?')) return;
     await API.del(`/api/posts/${id}`);
     loadFeed();
   };
