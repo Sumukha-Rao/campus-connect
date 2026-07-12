@@ -44,8 +44,16 @@
   // module, once all compose-section bindings have been initialized).
 
   // --- Network ---
-  window.addEventListener('online', () => { if (offlineBadge) offlineBadge.classList.add('d-none'); loadFeed(); });
+  window.addEventListener('online', () => {
+    if (offlineBadge) offlineBadge.classList.add('d-none');
+    maybeFlushQueue(); // push any posts queued while offline
+    loadFeed();
+  });
   window.addEventListener('offline', () => { if (offlineBadge) offlineBadge.classList.remove('d-none'); });
+
+  // Flush anything left in the queue from a previous session (e.g. app was
+  // closed before reconnecting on a browser without Background Sync).
+  if (navigator.onLine) maybeFlushQueue();
 
   // --- Tab Navigation ---
   function activateTab(target) {
@@ -330,12 +338,16 @@
             expires_at: expiresAt || null
           });
           await window.CCQueue.registerSync();
-          showToast("You're offline. Your post has been saved and will be published when you reconnect.");
+          const hadImage = !!document.getElementById('postImage').files[0];
+          showToast("You're offline. Your post was saved and will publish when you reconnect."
+            + (hadImage ? ' (Image can\'t be attached to offline posts.)' : ''));
           composeForm.reset();
           refreshPendingBadge();
         } catch (qErr) {
           alert('Could not save post offline: ' + qErr.message);
         }
+      } else if (err.name === 'TypeError' || !navigator.onLine) {
+        alert("You're offline. Offline posting isn't available for this account — please reconnect and try again.");
       } else {
         alert(err.message);
       }
@@ -344,6 +356,42 @@
       btn.innerHTML = 'Publish Post <i class="bi bi-arrow-right ms-2"></i>';
     }
   };
+
+  // Replay queued offline posts from the page. This is the authoritative path:
+  // it runs on the `online` event and on load, so posts publish as soon as the
+  // app is open and connected. (Background Sync in the service worker is
+  // unreliable — it frequently doesn't fire on a plain reconnect — so we don't
+  // depend on it.) The `flushingQueue` flag prevents overlapping runs.
+  let flushingQueue = false;
+  async function maybeFlushQueue() {
+    if (user.role !== 'publisher' || !window.CCQueue || flushingQueue) return;
+    flushingQueue = true;
+    let published = 0;
+    try {
+      const pending = await window.CCQueue.getPendingPosts();
+      for (const item of pending) {
+        try {
+          const res = await fetch('/api/posts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (item.token || token)
+            },
+            body: JSON.stringify(item.payload)
+          });
+          if (res.ok) { await window.CCQueue.deletePendingPost(item.id); published++; }
+          else break; // stop on server error; retry on next reconnect
+        } catch (e) { break; } // still offline
+      }
+    } finally {
+      flushingQueue = false;
+      refreshPendingBadge();
+      if (published > 0) {
+        showToast(`Back online — published ${published} queued post${published > 1 ? 's' : ''}.`);
+        loadFeed();
+      }
+    }
+  }
 
   // Pending offline posts badge on the compose tab.
   async function refreshPendingBadge() {

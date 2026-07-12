@@ -1,5 +1,5 @@
 // service-worker.js — CampusConnect PWA: role-aware hybrid caching + background sync
-const SHELL_CACHE = 'cc-shell-v5';   // App shell (HTML, CSS, JS, icons, fonts)
+const SHELL_CACHE = 'cc-shell-v6';   // App shell (HTML, CSS, JS, icons, fonts)
 const POSTS_CACHE = 'cc-posts-v1';   // API GET responses (posts/channels)
 const OFFLINE_QUEUE = 'cc-queue-v1'; // Reserved cache name (queue itself lives in IndexedDB)
 
@@ -15,41 +15,6 @@ const SHELL_ASSETS = [
 
 // Current user role, set at runtime via postMessage from sw-register.js.
 let currentRole = 'viewer';
-
-// ---- IndexedDB helpers (shared store with the page) ----
-const DB_NAME = 'cc-db';
-const STORE = 'pending_posts';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains(STORE)) {
-        req.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbGetAll() {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  }));
-}
-
-function idbDelete(id) {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  }));
-}
 
 // ---- Install: pre-cache the app shell (Cache First targets) ----
 self.addEventListener('install', event => {
@@ -69,7 +34,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys.filter(k => ![SHELL_CACHE, POSTS_CACHE, OFFLINE_QUEUE].includes(k))
-            .map(k => caches.delete(k))
+          .map(k => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
@@ -91,13 +56,13 @@ self.addEventListener('fetch', event => {
   // Cache API (put() throws), so let the browser handle them directly.
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-  // POST /api/posts while offline → queue for background sync (publishers only).
-  if (req.method === 'POST' && url.pathname === '/api/posts') {
-    event.respondWith(handlePostCreation(req));
-    return;
-  }
-
-  if (req.method !== 'GET') return; // other writes: network only
+  // POST /api/posts is intentionally NOT intercepted here. When offline the
+  // request must fail so the page's compose handler catches it and persists the
+  // payload to IndexedDB (window.CCQueue). If the SW answered with a synthetic
+  // "queued" response, res.ok would be true, the page would skip queueing, and
+  // the post would be silently lost. The queue is replayed by syncPendingPosts
+  // (Background Sync) and/or the page's own reconnect flush.
+  if (req.method !== 'GET') return; // writes: network only (page handles offline queueing)
 
   // Posts & channels feeds: Network First, fall back to cache.
   if (url.pathname.startsWith('/api/posts') || url.pathname.startsWith('/api/channels')) {
@@ -128,7 +93,7 @@ async function cacheFirst(req, cacheName) {
     // Update in the background (don't await).
     fetch(req).then(res => {
       if (res && res.ok) caches.open(cacheName).then(c => c.put(req, res.clone()));
-    }).catch(() => {});
+    }).catch(() => { });
     return cached;
   }
   try {
@@ -161,52 +126,12 @@ async function networkFirst(req, cacheName) {
   }
 }
 
-// Try the network; if offline, queue the post (publisher) for background sync.
-async function handlePostCreation(req) {
-  try {
-    return await fetch(req.clone());
-  } catch (err) {
-    // Admins never queue writes — mutating actions are network-only for them.
-    if (currentRole === 'admin') {
-      return new Response(JSON.stringify({ error: 'Offline — Admin actions unavailable' }), {
-        headers: { 'Content-Type': 'application/json' }, status: 503
-      });
-    }
-    // The page (CCQueue) is responsible for persisting the payload to IndexedDB
-    // and registering the sync tag. Here we just acknowledge offline acceptance.
-    try { await self.registration.sync.register('sync-pending-posts'); } catch (e) {}
-    return new Response(JSON.stringify({ queued: true, offline: true }), {
-      headers: { 'Content-Type': 'application/json' }, status: 202
-    });
-  }
-}
-
-// ---- Background Sync: replay queued posts ----
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-pending-posts') {
-    event.waitUntil(syncPendingPosts());
-  }
-});
-
-async function syncPendingPosts() {
-  const pending = await idbGetAll();
-  for (const item of pending) {
-    try {
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(item.token ? { 'Authorization': 'Bearer ' + item.token } : {})
-        },
-        body: JSON.stringify(item.payload)
-      });
-      if (res.ok) await idbDelete(item.id);
-    } catch (err) {
-      // Still offline — keep the item and let the next sync retry.
-      throw err;
-    }
-  }
-}
+// ---- Offline post replay ----
+// Queued offline posts are replayed entirely by the page (app.js
+// maybeFlushQueue) on the `online` event and on load. That path is reliable
+// across browsers and runs as a single owner, so there is no Background Sync
+// `sync` handler here — having both replay the same IndexedDB queue on
+// reconnect would risk publishing a post twice.
 
 // ---- Push notifications ----
 self.addEventListener('push', event => {

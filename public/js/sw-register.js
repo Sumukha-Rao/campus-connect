@@ -38,6 +38,15 @@ window.CCQueue = {
       req.onerror = () => reject(req.error);
     });
   },
+  async deletePendingPost(id) {
+    const db = await ccOpenDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(CC_STORE, 'readwrite');
+      tx.objectStore(CC_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  },
   async registerSync() {
     try {
       const reg = await navigator.serviceWorker.ready;
